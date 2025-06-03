@@ -20,13 +20,13 @@
         <Button text="Добавить" onAction="#handleAddFilm"/>
     </HBox>
 
-    <TableView fx:id="filmTable" prefHeight="300" prefWidth="743">
+    <TableView fx:id="filmTable" prefHeight="300" prefWidth="755">
         <columns>
             <TableColumn fx:id="titleColumn" text="Название" prefWidth="200"/>
             <TableColumn fx:id="genreColumn" text="Жанр" prefWidth="150"/>
             <TableColumn fx:id="yearColumn" text="Год" prefWidth="100"/>
             <TableColumn fx:id="watchedColumn" text="Просмотрено" prefWidth="120"/>
-            <TableColumn fx:id="actionColumn" text="Действия" prefWidth="171"/>
+            <TableColumn fx:id="actionColumn" text="Действия" prefWidth="183"/>
         </columns>
     </TableView>
 
