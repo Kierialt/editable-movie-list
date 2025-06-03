@@ -7,6 +7,7 @@ import javafx.scene.control.*;
 import javafx.scene.control.cell.CheckBoxTableCell;
 import javafx.scene.layout.HBox;
 import javafx.util.Callback;
+import java.sql.*;
 
 public class FilmController {
 
@@ -22,18 +23,93 @@ public class FilmController {
 
     private final ObservableList<Film> filmList = FXCollections.observableArrayList();
 
+
+    private void loadFilmsFromDatabase() {
+        try (Connection conn = DatabaseManager.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery("SELECT * FROM films")) {
+
+            while (rs.next()) {
+                Film film = new Film(
+                        rs.getString("title"),
+                        rs.getString("genre"),
+                        rs.getInt("year"),
+                        rs.getInt("watched") == 1
+                );
+                filmList.add(film);
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void saveFilmToDatabase(Film film) {
+        String sql = "INSERT INTO films(title, genre, year, watched) VALUES (?, ?, ?, ?)";
+        try (Connection conn = DatabaseManager.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, film.getTitle());
+            pstmt.setString(2, film.getGenre());
+            pstmt.setInt(3, film.getYear());
+            pstmt.setInt(4, film.isWatched() ? 1 : 0);
+            pstmt.executeUpdate();
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+
     @FXML
     public void initialize() {
         titleColumn.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(data.getValue().getTitle()));
         genreColumn.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(data.getValue().getGenre()));
         yearColumn.setCellValueFactory(data -> new javafx.beans.property.SimpleIntegerProperty(data.getValue().getYear()).asObject());
+
         watchedColumn.setCellValueFactory(data -> new javafx.beans.property.SimpleBooleanProperty(data.getValue().isWatched()));
         watchedColumn.setCellFactory(CheckBoxTableCell.forTableColumn(watchedColumn));
+        watchedColumn.setEditable(true);
 
+        filmTable.setEditable(true);
         filmTable.setItems(filmList);
 
+        // Обработчик изменения значения чекбокса "Просмотрено"
+        watchedColumn.setOnEditCommit(event -> {
+            Film film = event.getRowValue();
+            boolean newValue = event.getNewValue();
+            film.setWatched(newValue);
+            filmTable.refresh();
+
+            updateFilmWatchedInDatabase(film);  // Метод для обновления в базе
+        });
+
         addActionButtonsToTable();
+
+        DatabaseManager.initialize();
+        loadFilmsFromDatabase();
     }
+
+
+    private void updateFilmWatchedInDatabase(Film film) {
+        String sql = "UPDATE films SET watched = ? WHERE title = ? AND genre = ? AND year = ?";
+
+        try (Connection conn = DriverManager.getConnection("jdbc:sqlite:/Users/eugene/Desktop/DBForInteliJIDEA/films.db");
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setBoolean(1, film.isWatched());
+            pstmt.setString(2, film.getTitle());
+            pstmt.setString(3, film.getGenre());
+            pstmt.setInt(4, film.getYear());
+
+            pstmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+
 
     private void addActionButtonsToTable() {
         Callback<TableColumn<Film, Void>, TableCell<Film, Void>> cellFactory = param -> new TableCell<>() {
@@ -44,8 +120,10 @@ public class FilmController {
             {
                 deleteButton.setOnAction(event -> {
                     Film film = getTableView().getItems().get(getIndex());
-                    filmList.remove(film);
+                    deleteFilmFromDatabase(film); // сначала удаляем из БД
+                    filmList.remove(film);        // потом удаляем из UI
                 });
+
 
                 editButton.setOnAction(event -> {
                     Film film = getTableView().getItems().get(getIndex());
@@ -96,6 +174,9 @@ public class FilmController {
         titleField.clear();
         genreField.clear();
         yearField.clear();
+
+        saveFilmToDatabase(newFilm);
+
     }
 
     private void editFilm(Film film) {
@@ -143,6 +224,21 @@ public class FilmController {
             }
         });
     }
+
+    private void deleteFilmFromDatabase(Film film) {
+        String sql = "DELETE FROM films WHERE title = ? AND genre = ? AND year = ?";
+        try (Connection conn = DatabaseManager.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, film.getTitle());
+            pstmt.setString(2, film.getGenre());
+            pstmt.setInt(3, film.getYear());
+            pstmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+
 
     private void showAlert(Alert.AlertType type, String title, String message) {
         Alert alert = new Alert(type);
