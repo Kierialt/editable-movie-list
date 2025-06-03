@@ -22,6 +22,35 @@ public class DatabaseManager {
         }
     }
 
+    public static Connection connect() {
+        String url = "jdbc:sqlite:/Users/eugene/Desktop/DBForInteliJIDEA/films.db"; // имя файла базы, если у тебя другое — измени
+        Connection conn = null;
+        try {
+            conn = DriverManager.getConnection(url);
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
+        return conn;
+    }
+
+
+    public static void updateFilm(Film film) {
+        String sql = "UPDATE films SET title = ?, genre = ?, year = ?, watched = ? WHERE id = ?";
+
+        try (Connection conn = connect();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, film.getTitle());
+            pstmt.setString(2, film.getGenre());
+            pstmt.setInt(3, film.getYear());
+            pstmt.setBoolean(4, film.isWatched());
+            pstmt.setInt(5, film.getId());
+            pstmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+
     public static Connection getConnection() throws SQLException {
         return DriverManager.getConnection(DB_URL);
     }
