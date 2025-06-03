@@ -5,13 +5,14 @@ import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.CheckBoxTableCell;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.util.Callback;
 import java.sql.*;
-import java.util.Optional;
+
 
 public class FilmController {
 
@@ -94,6 +95,8 @@ public class FilmController {
 
         DatabaseManager.initialize();
         loadFilmsFromDatabase();
+        // 👇 Вот тут загружаем данные из базы
+        filmList.setAll(DatabaseManager.loadFilmsFromDatabase());
     }
 
 
@@ -186,25 +189,35 @@ public class FilmController {
 
     private void editFilm(Film film) {
         Dialog<ButtonType> dialog = new Dialog<>();
-        dialog.setTitle("Редактировать фильм");
+        dialog.setTitle("Редактирование фильма");
 
-        // Кастомное содержимое
-        Label titleLabel = new Label("Название:");
+        DialogPane dialogPane = dialog.getDialogPane();
+        dialogPane.getStylesheets().add(getClass().getResource("/dialog-style.css").toExternalForm());
+        dialogPane.getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+
+        Label titleLabel = new Label("🎬 Название:");
+        titleLabel.setStyle("-fx-font-weight: bold;");
         TextField titleField = new TextField(film.getTitle());
+        titleField.setPrefWidth(300);
 
-        Label genreLabel = new Label("Жанр:");
+        Label genreLabel = new Label("🎭 Жанр:");
+        genreLabel.setStyle("-fx-font-weight: bold;");
         TextField genreField = new TextField(film.getGenre());
+        genreField.setPrefWidth(300);
 
-        Label yearLabel = new Label("Год:");
+        Label yearLabel = new Label("📅 Год:");
+        yearLabel.setStyle("-fx-font-weight: bold;");
         TextField yearField = new TextField(String.valueOf(film.getYear()));
+        yearField.setPrefWidth(150);
 
-        CheckBox watchedBox = new CheckBox("Просмотрено");
+        CheckBox watchedBox = new CheckBox(" Просмотрено");
         watchedBox.setSelected(film.isWatched());
 
         GridPane grid = new GridPane();
         grid.setHgap(10);
-        grid.setVgap(10);
-        grid.setPadding(new Insets(20, 150, 10, 10));
+        grid.setVgap(15);
+        grid.setPadding(new Insets(25));
+        grid.setAlignment(Pos.CENTER_LEFT);
 
         grid.add(titleLabel, 0, 0);
         grid.add(titleField, 1, 0);
@@ -212,14 +225,13 @@ public class FilmController {
         grid.add(genreField, 1, 1);
         grid.add(yearLabel, 0, 2);
         grid.add(yearField, 1, 2);
+        grid.add(new Label(""), 0, 3); // пустая ячейка для выравнивания
         grid.add(watchedBox, 1, 3);
 
-        dialog.getDialogPane().setContent(grid);
-        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+        dialogPane.setContent(grid);
 
-        Button okButton = (Button) dialog.getDialogPane().lookupButton(ButtonType.OK);
-
-        // 🔁 Повторять ввод до тех пор, пока не валидно
+        // Валидация перед закрытием
+        Button okButton = (Button) dialogPane.lookupButton(ButtonType.OK);
         okButton.addEventFilter(ActionEvent.ACTION, event -> {
             String newTitle = titleField.getText().trim();
             String newGenre = genreField.getText().trim();
@@ -227,7 +239,7 @@ public class FilmController {
 
             if (newTitle.isEmpty() || newGenre.isEmpty() || newYearText.isEmpty()) {
                 showAlert(Alert.AlertType.ERROR, "Ошибка", "Пожалуйста, заполните все поля.");
-                event.consume(); // ← не закрывать диалог
+                event.consume();
                 return;
             }
 
@@ -235,7 +247,7 @@ public class FilmController {
             try {
                 newYear = Integer.parseInt(newYearText);
                 if (newYear < 1800 || newYear > 2100) {
-                    showAlert(Alert.AlertType.ERROR, "Ошибка", "Год должен быть в пределах 1800-2100.");
+                    showAlert(Alert.AlertType.ERROR, "Ошибка", "Год должен быть в пределах 1800–2100.");
                     event.consume();
                     return;
                 }
@@ -245,18 +257,19 @@ public class FilmController {
                 return;
             }
 
-            // Если всё ок — обновляем фильм
+            // Обновляем данные
             film.setTitle(newTitle);
             film.setGenre(newGenre);
             film.setYear(newYear);
             film.setWatched(watchedBox.isSelected());
 
-            updateFilmInDatabase(film); // обновление в БД
-            filmTable.refresh(); // обновить таблицу
+            updateFilmInDatabase(film);
+            filmTable.refresh();
         });
 
-        dialog.showAndWait(); // показать окно
+        dialog.showAndWait();
     }
+
 
 
     private void updateFilmInDatabase(Film film) {

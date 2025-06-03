@@ -1,6 +1,8 @@
 package com.example.project;
 
 import java.sql.*;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 
 public class DatabaseManager {
     private static final String DB_URL = "jdbc:sqlite:/Users/eugene/Desktop/DBForInteliJIDEA/films.db";
@@ -39,19 +41,60 @@ public class DatabaseManager {
 
         try (Connection conn = connect();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
             pstmt.setString(1, film.getTitle());
             pstmt.setString(2, film.getGenre());
             pstmt.setInt(3, film.getYear());
             pstmt.setBoolean(4, film.isWatched());
             pstmt.setInt(5, film.getId());
-            pstmt.executeUpdate();
+
+            int affectedRows = pstmt.executeUpdate();
+            if (affectedRows == 0) {
+                System.err.println("❗ Обновление не удалось: фильм с id " + film.getId() + " не найден.");
+            } else {
+                System.out.println("✅ Фильм успешно обновлён: " + film.getTitle());
+            }
+
         } catch (SQLException e) {
-            e.printStackTrace();
+            System.err.println("Ошибка при обновлении фильма: " + e.getMessage());
         }
     }
+
 
 
     public static Connection getConnection() throws SQLException {
         return DriverManager.getConnection(DB_URL);
     }
+
+
+
+    public static ObservableList<Film> loadFilmsFromDatabase() {
+        ObservableList<Film> films = FXCollections.observableArrayList();
+        String sql = "SELECT id, title, genre, year, watched FROM films";
+
+        try (Connection conn = connect();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+
+            while (rs.next()) {
+                int id = rs.getInt("id");
+                String title = rs.getString("title");
+                String genre = rs.getString("genre");
+                int year = rs.getInt("year");
+                boolean watched = rs.getBoolean("watched");
+
+                Film film = new Film(id, title, genre, year, watched);
+                film.setId(id); // 💥 Устанавливаем ID из базы
+
+                films.add(film);
+            }
+
+        } catch (SQLException e) {
+            System.err.println("Ошибка при загрузке фильмов из базы: " + e.getMessage());
+        }
+
+        return films;
+    }
+
+
 }
