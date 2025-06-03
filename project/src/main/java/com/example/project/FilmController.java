@@ -2,12 +2,16 @@ package com.example.project;
 
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
+import javafx.geometry.Insets;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.CheckBoxTableCell;
+import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.util.Callback;
 import java.sql.*;
+import java.util.Optional;
 
 public class FilmController {
 
@@ -31,6 +35,7 @@ public class FilmController {
 
             while (rs.next()) {
                 Film film = new Film(
+                        rs.getInt("id"),
                         rs.getString("title"),
                         rs.getString("genre"),
                         rs.getInt("year"),
@@ -168,7 +173,7 @@ public class FilmController {
             return;
         }
 
-        Film newFilm = new Film(title, genre, year, false);
+        Film newFilm = new Film(-1, title, genre, year, false);
         filmList.add(newFilm);
 
         titleField.clear();
@@ -180,50 +185,84 @@ public class FilmController {
     }
 
     private void editFilm(Film film) {
-        TextInputDialog dialog = new TextInputDialog(film.getTitle());
-        dialog.setTitle("Редактировать название");
-        dialog.setHeaderText("Введите новое название:");
-        dialog.setContentText("Название:");
-        dialog.showAndWait().ifPresent(newTitle -> {
-            if (!newTitle.trim().isEmpty()) {
-                film.setTitle(newTitle.trim());
-                filmTable.refresh();
-            } else {
-                showAlert(Alert.AlertType.WARNING, "Внимание", "Название не может быть пустым.");
-            }
-        });
+        Dialog<ButtonType> dialog = new Dialog<>();
+        dialog.setTitle("Редактировать фильм");
 
-        dialog = new TextInputDialog(film.getGenre());
-        dialog.setTitle("Редактировать жанр");
-        dialog.setHeaderText("Введите новый жанр:");
-        dialog.setContentText("Жанр:");
-        dialog.showAndWait().ifPresent(newGenre -> {
-            if (!newGenre.trim().isEmpty()) {
-                film.setGenre(newGenre.trim());
-                filmTable.refresh();
-            } else {
-                showAlert(Alert.AlertType.WARNING, "Внимание", "Жанр не может быть пустым.");
-            }
-        });
+        // Кастомное содержимое
+        Label titleLabel = new Label("Название:");
+        TextField titleField = new TextField(film.getTitle());
 
-        dialog = new TextInputDialog(String.valueOf(film.getYear()));
-        dialog.setTitle("Редактировать год");
-        dialog.setHeaderText("Введите новый год:");
-        dialog.setContentText("Год:");
-        dialog.showAndWait().ifPresent(newYearText -> {
+        Label genreLabel = new Label("Жанр:");
+        TextField genreField = new TextField(film.getGenre());
+
+        Label yearLabel = new Label("Год:");
+        TextField yearField = new TextField(String.valueOf(film.getYear()));
+
+        CheckBox watchedBox = new CheckBox("Просмотрено");
+        watchedBox.setSelected(film.isWatched());
+
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.setPadding(new Insets(20, 150, 10, 10));
+
+        grid.add(titleLabel, 0, 0);
+        grid.add(titleField, 1, 0);
+        grid.add(genreLabel, 0, 1);
+        grid.add(genreField, 1, 1);
+        grid.add(yearLabel, 0, 2);
+        grid.add(yearField, 1, 2);
+        grid.add(watchedBox, 1, 3);
+
+        dialog.getDialogPane().setContent(grid);
+        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+
+        Button okButton = (Button) dialog.getDialogPane().lookupButton(ButtonType.OK);
+
+        // 🔁 Повторять ввод до тех пор, пока не валидно
+        okButton.addEventFilter(ActionEvent.ACTION, event -> {
+            String newTitle = titleField.getText().trim();
+            String newGenre = genreField.getText().trim();
+            String newYearText = yearField.getText().trim();
+
+            if (newTitle.isEmpty() || newGenre.isEmpty() || newYearText.isEmpty()) {
+                showAlert(Alert.AlertType.ERROR, "Ошибка", "Пожалуйста, заполните все поля.");
+                event.consume(); // ← не закрывать диалог
+                return;
+            }
+
+            int newYear;
             try {
-                int newYear = Integer.parseInt(newYearText.trim());
+                newYear = Integer.parseInt(newYearText);
                 if (newYear < 1800 || newYear > 2100) {
-                    showAlert(Alert.AlertType.WARNING, "Ошибка", "Введите корректный год (1800-2100).");
-                } else {
-                    film.setYear(newYear);
-                    filmTable.refresh();
+                    showAlert(Alert.AlertType.ERROR, "Ошибка", "Год должен быть в пределах 1800-2100.");
+                    event.consume();
+                    return;
                 }
             } catch (NumberFormatException e) {
-                showAlert(Alert.AlertType.WARNING, "Ошибка", "Год должен быть числом.");
+                showAlert(Alert.AlertType.ERROR, "Ошибка", "Год должен быть числом.");
+                event.consume();
+                return;
             }
+
+            // Если всё ок — обновляем фильм
+            film.setTitle(newTitle);
+            film.setGenre(newGenre);
+            film.setYear(newYear);
+            film.setWatched(watchedBox.isSelected());
+
+            updateFilmInDatabase(film); // обновление в БД
+            filmTable.refresh(); // обновить таблицу
         });
+
+        dialog.showAndWait(); // показать окно
     }
+
+
+    private void updateFilmInDatabase(Film film) {
+        DatabaseManager.updateFilm(film);
+    }
+
 
     private void deleteFilmFromDatabase(Film film) {
         String sql = "DELETE FROM films WHERE title = ? AND genre = ? AND year = ?";
