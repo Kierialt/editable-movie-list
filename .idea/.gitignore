@@ -11,3 +11,5 @@ misc.xml
 modules.xml
 vcs.xml
 workspace.xml
+dataSources.local.xml
+dataSources.xml
