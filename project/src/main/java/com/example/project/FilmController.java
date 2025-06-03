@@ -95,8 +95,6 @@ public class FilmController {
 
         DatabaseManager.initialize();
         loadFilmsFromDatabase();
-        // 👇 Вот тут загружаем данные из базы
-        filmList.setAll(DatabaseManager.loadFilmsFromDatabase());
     }
 
 
@@ -189,6 +187,7 @@ public class FilmController {
 
     private void editFilm(Film film) {
         Dialog<ButtonType> dialog = new Dialog<>();
+
         dialog.setTitle("Редактирование фильма");
 
         DialogPane dialogPane = dialog.getDialogPane();
