@@ -1,12 +1,14 @@
 package com.example.project;
 
 public class Film {
+    private int id;
     private String title;
     private String genre;
     private int year;
     private boolean watched;
 
-    public Film(String title, String genre, int year, boolean watched) {
+    public Film(int id, String title, String genre, int year, boolean watched) {
+        this.id = id;
         this.title = title;
         this.genre = genre;
         this.year = year;
@@ -15,6 +17,9 @@ public class Film {
     public Film() {}
 
     // Геттеры и сеттеры
+    public int getId() {return id;}
+
+    public void setId(int id) {this.id = id;}
     public String getTitle() { return title; }
     public void setTitle(String title) { this.title = title; }
 
