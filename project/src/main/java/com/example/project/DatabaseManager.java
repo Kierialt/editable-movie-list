@@ -1,6 +1,7 @@
 package com.example.project;
 
 import java.sql.*;
+
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 
@@ -9,20 +10,40 @@ public class DatabaseManager {
 
     public static void initialize() {
         try (Connection conn = DriverManager.getConnection(DB_URL)) {
-            String sql = """
-                CREATE TABLE IF NOT EXISTS films (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    title TEXT NOT NULL,
-                    genre TEXT NOT NULL,
-                    year INTEGER NOT NULL,
-                    watched INTEGER NOT NULL
-                );
-                """;
-            conn.createStatement().execute(sql);
+            Statement stmt = conn.createStatement();
+
+            // Перепишем CREATE TABLE users для наших целей:
+            String userTable = """
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT NOT NULL UNIQUE,
+                password TEXT NOT NULL
+            );
+        """;
+
+            // Таблица фильмов с внешним ключом user_id
+            String filmTable = """
+            CREATE TABLE IF NOT EXISTS films (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT NOT NULL,
+                genre TEXT NOT NULL,
+                year INTEGER NOT NULL,
+                watched INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            );
+        """;
+
+            stmt.execute(userTable);
+            stmt.execute(filmTable);
+
         } catch (SQLException e) {
             e.printStackTrace();
         }
     }
+
+
+
 
     public static Connection connect() {
         String url = "jdbc:sqlite:/Users/eugene/Desktop/DBForInteliJIDEA/films.db"; // имя файла базы, если у тебя другое — измени
