@@ -8,9 +8,10 @@ import javafx.stage.Stage;
 public class Main extends Application {
     @Override
     public void start(Stage primaryStage) throws Exception {
-        FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/example/project/main.fxml"));
+        // Загружаем login.fxml вместо main.fxml
+        FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/example/project/login.fxml"));
         Scene scene = new Scene(loader.load());
-        primaryStage.setTitle("Список фильмов");
+        primaryStage.setTitle("Вход в систему");
         primaryStage.setScene(scene);
         primaryStage.show();
     }
