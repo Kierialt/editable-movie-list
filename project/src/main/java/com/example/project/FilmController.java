@@ -14,7 +14,9 @@ import javafx.util.Callback;
 import java.sql.*;
 
 
+
 public class FilmController {
+
 
     @FXML private TextField titleField;
     @FXML private TextField genreField;
@@ -29,10 +31,28 @@ public class FilmController {
     private final ObservableList<Film> filmList = FXCollections.observableArrayList();
 
 
+    private User loggedInUser; // сюда придёт пользователь после логина
+
+    public void postInitialize() {
+        // Этот метод должен вызываться после того, как установили loggedInUser
+        DatabaseManager.initialize(); // Создаём таблицы (если их ещё нет)
+        loadFilmsFromDatabase();      // Загружаем фильмы текущего пользователя
+    }
+
+    public void setLoggedInUser(User user) {
+        this.loggedInUser = user;
+    }
+
+
     private void loadFilmsFromDatabase() {
+        //filmList.clear(); // если вдруг вызывали раньше
+
+        String sql = "SELECT id, title, genre, year, watched FROM films WHERE user_id = ?";
         try (Connection conn = DatabaseManager.getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery("SELECT * FROM films")) {
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, loggedInUser.getId());
+            ResultSet rs = pstmt.executeQuery();
 
             while (rs.next()) {
                 Film film = new Film(
@@ -44,28 +64,39 @@ public class FilmController {
                 );
                 filmList.add(film);
             }
-
         } catch (SQLException e) {
             e.printStackTrace();
         }
     }
 
+
+
     private void saveFilmToDatabase(Film film) {
-        String sql = "INSERT INTO films(title, genre, year, watched) VALUES (?, ?, ?, ?)";
+        String sql = "INSERT INTO films(title, genre, year, watched, user_id) VALUES (?, ?, ?, ?, ?)";
         try (Connection conn = DatabaseManager.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+             PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
             pstmt.setString(1, film.getTitle());
             pstmt.setString(2, film.getGenre());
             pstmt.setInt(3, film.getYear());
             pstmt.setInt(4, film.isWatched() ? 1 : 0);
-            pstmt.executeUpdate();
+            pstmt.setInt(5, loggedInUser.getId());
 
+            int affectedRows = pstmt.executeUpdate();
+            if (affectedRows == 0) {
+                System.err.println("❗ Не удалось добавить фильм в БД.");
+                return;
+            }
+            // Получим сгенерированный ID и запишем в объект film
+            ResultSet generatedKeys = pstmt.getGeneratedKeys();
+            if (generatedKeys.next()) {
+                int newId = generatedKeys.getInt(1);
+                film.setId(newId);
+            }
         } catch (SQLException e) {
             e.printStackTrace();
         }
     }
-
 
 
     @FXML
@@ -87,29 +118,38 @@ public class FilmController {
             boolean newValue = event.getNewValue();
             film.setWatched(newValue);
             filmTable.refresh();
-
-            updateFilmWatchedInDatabase(film);  // Метод для обновления в базе
+            updateFilmWatchedInDatabase(film);
         });
 
         addActionButtonsToTable();
 
-        DatabaseManager.initialize();
-        loadFilmsFromDatabase();
+        // НЕ загружаем фильмы здесь! Ждём, пока кто-то вызовет setLoggedInUser(...) и после этого — loadFilmsFromDatabase().
     }
 
 
-    private void updateFilmWatchedInDatabase(Film film) {
-        String sql = "UPDATE films SET watched = ? WHERE title = ? AND genre = ? AND year = ?";
 
-        try (Connection conn = DriverManager.getConnection("jdbc:sqlite:/Users/eugene/Desktop/DBForInteliJIDEA/films.db");
+    private void updateFilmWatchedInDatabase(Film film) {
+        String sql = "UPDATE films SET watched = ? WHERE id = ?";
+        try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
-            pstmt.setBoolean(1, film.isWatched());
-            pstmt.setString(2, film.getTitle());
-            pstmt.setString(3, film.getGenre());
-            pstmt.setInt(4, film.getYear());
+            pstmt.setInt(1, film.isWatched() ? 1 : 0);
+            pstmt.setInt(2, film.getId());
 
             pstmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void deleteFilmFromDatabase(Film film) {
+        String sql = "DELETE FROM films WHERE id = ?";
+        try (Connection conn = DatabaseManager.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, film.getId());
+            pstmt.executeUpdate();
+
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -245,8 +285,8 @@ public class FilmController {
             int newYear;
             try {
                 newYear = Integer.parseInt(newYearText);
-                if (newYear < 1800 || newYear > 2100) {
-                    showAlert(Alert.AlertType.ERROR, "Ошибка", "Год должен быть в пределах 1800–2100.");
+                if (newYear < 1800 || newYear > 2025) {
+                    showAlert(Alert.AlertType.ERROR, "Ошибка", "Год должен быть в пределах 1800–2025.");
                     event.consume();
                     return;
                 }
@@ -273,20 +313,6 @@ public class FilmController {
 
     private void updateFilmInDatabase(Film film) {
         DatabaseManager.updateFilm(film);
-    }
-
-
-    private void deleteFilmFromDatabase(Film film) {
-        String sql = "DELETE FROM films WHERE title = ? AND genre = ? AND year = ?";
-        try (Connection conn = DatabaseManager.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setString(1, film.getTitle());
-            pstmt.setString(2, film.getGenre());
-            pstmt.setInt(3, film.getYear());
-            pstmt.executeUpdate();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
     }
 
 
