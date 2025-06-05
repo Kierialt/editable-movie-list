@@ -4,13 +4,18 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.CheckBoxTableCell;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
+import javafx.stage.Stage;
 import javafx.util.Callback;
+
+import java.io.IOException;
 import java.sql.*;
 
 
@@ -155,6 +160,19 @@ public class FilmController {
         }
     }
 
+    public void handleLogout() {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/example/project/login.fxml"));
+            Scene scene = new Scene(loader.load());
+
+            Stage stage = (Stage) filmTable.getScene().getWindow(); // filmTable — любой элемент с main.fxml
+            stage.setScene(scene);
+            stage.setTitle("Вход / Регистрация");
+            stage.show();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
 
     private void addActionButtonsToTable() {

@@ -18,6 +18,8 @@
         <TextField fx:id="genreField" promptText="Жанр"/>
         <TextField fx:id="yearField" promptText="Год"/>
         <Button text="Добавить" onAction="#handleAddFilm"/>
+        <Button text="Logout" onAction="#handleLogout" style="-fx-background-color: #e74c3c; -fx-text-fill: white;" />
+
     </HBox>
 
     <TableView fx:id="filmTable" prefHeight="300" prefWidth="755">
