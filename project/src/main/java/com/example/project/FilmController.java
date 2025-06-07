@@ -2,6 +2,7 @@ package com.example.project;
 
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -50,58 +51,85 @@ public class FilmController {
 
 
     private void loadFilmsFromDatabase() {
-        //filmList.clear(); // если вдруг вызывали раньше
+        Task<ObservableList<Film>> task = new Task<>() {
+            @Override
+            protected ObservableList<Film> call() throws Exception {
+                ObservableList<Film> loadedFilms = FXCollections.observableArrayList();
+                String sql = "SELECT id, title, genre, year, watched FROM films WHERE user_id = ?";
 
-        String sql = "SELECT id, title, genre, year, watched FROM films WHERE user_id = ?";
-        try (Connection conn = DatabaseManager.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                try (Connection conn = DatabaseManager.getConnection();
+                     PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
-            pstmt.setInt(1, loggedInUser.getId());
-            ResultSet rs = pstmt.executeQuery();
+                    pstmt.setInt(1, loggedInUser.getId());
+                    ResultSet rs = pstmt.executeQuery();
 
-            while (rs.next()) {
-                Film film = new Film(
-                        rs.getInt("id"),
-                        rs.getString("title"),
-                        rs.getString("genre"),
-                        rs.getInt("year"),
-                        rs.getInt("watched") == 1
-                );
-                filmList.add(film);
+                    while (rs.next()) {
+                        Film film = new Film(
+                                rs.getInt("id"),
+                                rs.getString("title"),
+                                rs.getString("genre"),
+                                rs.getInt("year"),
+                                rs.getInt("watched") == 1
+                        );
+                        loadedFilms.add(film);
+                    }
+                }
+                return loadedFilms;
             }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+        };
+
+        task.setOnSucceeded(event -> {
+            filmList.setAll(task.getValue());
+        });
+
+        task.setOnFailed(event -> {
+            task.getException().printStackTrace();
+        });
+
+        new Thread(task).start();
     }
+
 
 
 
     private void saveFilmToDatabase(Film film) {
-        String sql = "INSERT INTO films(title, genre, year, watched, user_id) VALUES (?, ?, ?, ?, ?)";
-        try (Connection conn = DatabaseManager.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+        Task<Void> task = new Task<>() {
+            @Override
+            protected Void call() throws Exception {
+                String sql = "INSERT INTO films (title, genre, year, watched, user_id) VALUES (?, ?, ?, ?, ?)";
 
-            pstmt.setString(1, film.getTitle());
-            pstmt.setString(2, film.getGenre());
-            pstmt.setInt(3, film.getYear());
-            pstmt.setInt(4, film.isWatched() ? 1 : 0);
-            pstmt.setInt(5, loggedInUser.getId());
+                try (Connection conn = DatabaseManager.getConnection();
+                     PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
-            int affectedRows = pstmt.executeUpdate();
-            if (affectedRows == 0) {
-                System.err.println("❗ Не удалось добавить фильм в БД.");
-                return;
+                    pstmt.setString(1, film.getTitle());
+                    pstmt.setString(2, film.getGenre());
+                    pstmt.setInt(3, film.getYear());
+                    pstmt.setInt(4, film.isWatched() ? 1 : 0);
+                    pstmt.setInt(5, loggedInUser.getId());
+
+                    pstmt.executeUpdate();
+                }
+
+                return null;
             }
-            // Получим сгенерированный ID и запишем в объект film
-            ResultSet generatedKeys = pstmt.getGeneratedKeys();
-            if (generatedKeys.next()) {
-                int newId = generatedKeys.getInt(1);
-                film.setId(newId);
+
+            @Override
+            protected void succeeded() {
+                super.succeeded();
+                loadFilmsFromDatabase(); // обновить список после добавления
             }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+
+            @Override
+            protected void failed() {
+                super.failed();
+                getException().printStackTrace();
+            }
+        };
+
+        new Thread(task).start();
     }
+
+
 
 
     @FXML
@@ -148,17 +176,39 @@ public class FilmController {
     }
 
     private void deleteFilmFromDatabase(Film film) {
-        String sql = "DELETE FROM films WHERE id = ?";
-        try (Connection conn = DatabaseManager.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        Task<Void> task = new Task<>() {
+            @Override
+            protected Void call() throws Exception {
+                String sql = "DELETE FROM films WHERE id = ? AND user_id = ?";
 
-            pstmt.setInt(1, film.getId());
-            pstmt.executeUpdate();
+                try (Connection conn = DatabaseManager.getConnection();
+                     PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+                    pstmt.setInt(1, film.getId());
+                    pstmt.setInt(2, loggedInUser.getId());
+
+                    pstmt.executeUpdate();
+                }
+
+                return null;
+            }
+
+            @Override
+            protected void succeeded() {
+                super.succeeded();
+                loadFilmsFromDatabase(); // обновить список
+            }
+
+            @Override
+            protected void failed() {
+                super.failed();
+                getException().printStackTrace();
+            }
+        };
+
+        new Thread(task).start();
     }
+
 
     public void handleLogout() {
         try {
@@ -330,8 +380,43 @@ public class FilmController {
 
 
     private void updateFilmInDatabase(Film film) {
-        DatabaseManager.updateFilm(film);
+        Task<Void> task = new Task<>() {
+            @Override
+            protected Void call() throws Exception {
+                String sql = "UPDATE films SET title = ?, genre = ?, year = ?, watched = ? WHERE id = ? AND user_id = ?";
+
+                try (Connection conn = DatabaseManager.getConnection();
+                     PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+                    pstmt.setString(1, film.getTitle());
+                    pstmt.setString(2, film.getGenre());
+                    pstmt.setInt(3, film.getYear());
+                    pstmt.setInt(4, film.isWatched() ? 1 : 0);
+                    pstmt.setInt(5, film.getId());
+                    pstmt.setInt(6, loggedInUser.getId());
+
+                    pstmt.executeUpdate();
+                }
+
+                return null;
+            }
+
+            @Override
+            protected void succeeded() {
+                super.succeeded();
+                loadFilmsFromDatabase(); // обновить список
+            }
+
+            @Override
+            protected void failed() {
+                super.failed();
+                getException().printStackTrace();
+            }
+        };
+
+        new Thread(task).start();
     }
+
 
 
 
