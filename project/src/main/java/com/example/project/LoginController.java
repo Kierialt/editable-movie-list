@@ -17,7 +17,7 @@ public class LoginController {
     @FXML private PasswordField passwordField;
     @FXML private Label messageLabel;
 
-    // После удачного входа нам нужно передать ID пользователя в FilmController
+    // After successful login, we need to pass the user ID to the FilmController
     private User loggedInUser;
 
     @FXML
@@ -27,11 +27,11 @@ public class LoginController {
         newUser.setPassword(passwordField.getText().trim());
 
         if (newUser.getUsername().isEmpty() || newUser.getPassword().isEmpty()) {
-            messageLabel.setText("Пожалуйста, заполните все поля.");
+            messageLabel.setText("Please fill in all fields.");
             return;
         }
 
-        // Проверяем в БД: SELECT id, username, password FROM users WHERE username = ? AND password = ?
+        // Checking the database: SELECT id, username, password FROM users WHERE username = ? AND password = ?
         String sql = "SELECT id, username, password FROM users WHERE username = ? AND password = ?";
         try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -41,24 +41,22 @@ public class LoginController {
             ResultSet rs = pstmt.executeQuery();
 
             if (rs.next()) {
-                // Пользователь найден — вход успешен
+                // User found — login successful
                 int id = rs.getInt("id");
                 String uname = rs.getString("username");
                 String pass = rs.getString("password");
                 loggedInUser = new User(id, uname, pass);
 
-                // Открываем экран со списком фильмов и передаём в его контроллер loggedInUser
+                // Opening the film list screen and passing loggedInUser to its controller
                 openFilmScreen();
             } else {
-                messageLabel.setText("Неправильный логин или пароль.");
+                messageLabel.setText("Incorrect username or password.");
             }
         } catch (SQLException e) {
             e.printStackTrace();
-            showAlert("Ошибка при подключении к БД", e.getMessage());
+            showAlert("Database connection error", e.getMessage());
         }
     }
-
-
 
 
     @FXML
@@ -69,11 +67,11 @@ public class LoginController {
 
 
         if (newUser.getUsername().isEmpty() || newUser.getPassword().isEmpty()) {
-            messageLabel.setText("Пожалуйста, заполните все поля.");
+            messageLabel.setText("Please fill in all fields.");
             return;
         }
 
-        // Пытаемся вставить нового пользователя в таблицу users
+        // Attempting to insert a new user into the users table
         String sql = "INSERT INTO users(username, password) VALUES(?, ?)";
         try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -82,14 +80,14 @@ public class LoginController {
             pstmt.setString(2, newUser.getPassword());
             pstmt.executeUpdate();
 
-            messageLabel.setText("Регистрация успешна. Можно войти.");
+            messageLabel.setText("Registration successful. You can now log in.");
         } catch (SQLException e) {
-            // Если уникальность по username нарушена, придёт исключение
+            // If the username uniqueness constraint is violated, an exception will be thrown
             if (e.getMessage().contains("UNIQUE") || e.getMessage().contains("unique")) {
-                messageLabel.setText("Пользователь с таким именем уже есть.");
+                messageLabel.setText("A user with this username already exists.");
             } else {
                 e.printStackTrace();
-                showAlert("Ошибка при регистрации", e.getMessage());
+                showAlert("Registration error", e.getMessage());
             }
         }
     }
@@ -101,15 +99,15 @@ public class LoginController {
 
             FilmController filmController = loader.getController();
             filmController.setLoggedInUser(loggedInUser);
-            filmController.postInitialize(); // загружаем фильмы и создаём БД
+            filmController.postInitialize(); // Loading films and creating database
 
             Stage primaryStage = (Stage) usernameField.getScene().getWindow();
             primaryStage.setScene(scene);
-            primaryStage.setTitle("Список фильмов — пользователь: " + loggedInUser.getUsername());
+            primaryStage.setTitle("Film list — user: " + loggedInUser.getUsername());
             primaryStage.show();
         } catch (IOException e) {
             e.printStackTrace();
-            showAlert("Ошибка при загрузке экрана фильмов", e.getMessage());
+            showAlert("Error loading the film screen", e.getMessage());
         }
     }
 

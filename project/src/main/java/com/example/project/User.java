@@ -3,7 +3,7 @@ package com.example.project;
 public class User {
     private int id;
     private String username;
-    private String password; // для простоты храним в виде строки, но можно потом добавить хеширование
+    private String password; // For simplicity, we store it as a plain string, but hashing can be added later
 
     public User() { }
 
@@ -13,7 +13,9 @@ public class User {
         this.password = password;
     }
 
-    // Геттеры/сеттеры
+
+    // Getters and setters
+
     public int getId() { return id; }
     public void setId(int id) { this.id = id; }
 

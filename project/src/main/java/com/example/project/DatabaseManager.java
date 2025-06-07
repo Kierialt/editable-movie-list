@@ -10,7 +10,8 @@ public class DatabaseManager {
         try (Connection conn = DriverManager.getConnection(DB_URL)) {
             Statement stmt = conn.createStatement();
 
-            // Перепишем CREATE TABLE users для наших целей:
+            // SQL command to create the 'users' table
+
             String userTable = """
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -19,7 +20,8 @@ public class DatabaseManager {
             );
         """;
 
-            // Таблица фильмов с внешним ключом user_id
+            // Table 'films' with a foreign key referencing the user_id
+
             String filmTable = """
             CREATE TABLE IF NOT EXISTS films (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -41,14 +43,9 @@ public class DatabaseManager {
     }
 
 
-
-
     public static Connection getConnection() throws SQLException {
         return DriverManager.getConnection(DB_URL);
     }
-
-
-
 
 
 }

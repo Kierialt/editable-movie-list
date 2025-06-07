@@ -37,12 +37,14 @@ public class FilmController {
     private final ObservableList<Film> filmList = FXCollections.observableArrayList();
 
 
-    private User loggedInUser; // сюда придёт пользователь после логина
+    private User loggedInUser; // The user will be redirected here after logging in
+
 
     public void postInitialize() {
-        // Этот метод должен вызываться после того, как установили loggedInUser
-        DatabaseManager.initialize(); // Создаём таблицы (если их ещё нет)
-        loadFilmsFromDatabase();      // Загружаем фильмы текущего пользователя
+        // This method should be called after setting loggedInUser
+
+        DatabaseManager.initialize(); // Create tables (if they don't exist yet)
+        loadFilmsFromDatabase();      // Load movies of the current user
     }
 
     public void setLoggedInUser(User user) {
@@ -86,8 +88,6 @@ public class FilmController {
     }
 
 
-
-
     private void saveFilmToDatabase(Film film) {
         Task<Void> task = new Task<>() {
             @Override
@@ -112,7 +112,7 @@ public class FilmController {
             @Override
             protected void succeeded() {
                 super.succeeded();
-                loadFilmsFromDatabase(); // обновить список после добавления
+                loadFilmsFromDatabase(); // Refresh the list after adding
             }
 
             @Override
@@ -124,8 +124,6 @@ public class FilmController {
 
         new Thread(task).start();
     }
-
-
 
 
     @FXML
@@ -141,7 +139,9 @@ public class FilmController {
         filmTable.setEditable(true);
         filmTable.setItems(filmList);
 
-        // Обработчик изменения значения чекбокса "Просмотрено"
+
+        // Handler for the "Watched" checkbox value change
+
         watchedColumn.setOnEditCommit(event -> {
             Film film = event.getRowValue();
             boolean newValue = event.getNewValue();
@@ -152,9 +152,8 @@ public class FilmController {
 
         addActionButtonsToTable();
 
-        // НЕ загружаем фильмы здесь! Ждём, пока кто-то вызовет setLoggedInUser(...) и после этого — loadFilmsFromDatabase().
+        // DO NOT load films here! Wait until setLoggedInUser(...) is called, and only then call loadFilmsFromDatabase().
     }
-
 
 
     private void updateFilmWatchedInDatabase(Film film) {
@@ -171,67 +170,19 @@ public class FilmController {
         }
     }
 
-    private void deleteFilmFromDatabase(Film film) {
-        Task<Void> task = new Task<>() {
-            @Override
-            protected Void call() throws Exception {
-                String sql = "DELETE FROM films WHERE id = ? AND user_id = ?";
-
-                try (Connection conn = DatabaseManager.getConnection();
-                     PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
-                    pstmt.setInt(1, film.getId());
-                    pstmt.setInt(2, loggedInUser.getId());
-
-                    pstmt.executeUpdate();
-                }
-
-                return null;
-            }
-
-            @Override
-            protected void succeeded() {
-                super.succeeded();
-                loadFilmsFromDatabase(); // обновить список
-            }
-
-            @Override
-            protected void failed() {
-                super.failed();
-                getException().printStackTrace();
-            }
-        };
-
-        new Thread(task).start();
-    }
-
-
-    public void handleLogout() {
-        try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/example/project/login.fxml"));
-            Scene scene = new Scene(loader.load());
-
-            Stage stage = (Stage) filmTable.getScene().getWindow(); // filmTable — любой элемент с main.fxml
-            stage.setScene(scene);
-            stage.setTitle("Вход / Регистрация");
-            stage.show();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
 
 
     private void addActionButtonsToTable() {
         Callback<TableColumn<Film, Void>, TableCell<Film, Void>> cellFactory = param -> new TableCell<>() {
-            private final Button deleteButton = new Button("Удалить");
-            private final Button editButton = new Button("Редактировать");
+            private final Button deleteButton = new Button("Delete");
+            private final Button editButton = new Button("Edit");
             private final HBox buttonBox = new HBox(5, deleteButton, editButton);
 
             {
                 deleteButton.setOnAction(event -> {
                     Film film = getTableView().getItems().get(getIndex());
-                    deleteFilmFromDatabase(film); // сначала удаляем из БД
-                    filmList.remove(film);        // потом удаляем из UI
+                    deleteFilmFromDatabase(film); // First delete from the database
+                    filmList.remove(film);        // Then remove from the UI
                 });
 
 
@@ -255,6 +206,23 @@ public class FilmController {
         actionColumn.setCellFactory(cellFactory);
     }
 
+
+    public void handleLogout() {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/example/project/login.fxml"));
+            Scene scene = new Scene(loader.load());
+
+            Stage stage = (Stage) filmTable.getScene().getWindow();
+            stage.setScene(scene);
+            stage.setTitle("Login / Registration");
+            stage.show();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+
     @FXML
     private void handleAddFilm() {
         String title = titleField.getText().trim();
@@ -262,7 +230,7 @@ public class FilmController {
         String yearText = yearField.getText().trim();
 
         if (title.isEmpty() || genre.isEmpty() || yearText.isEmpty()) {
-            showAlert("Пожалуйста, заполните все поля.");
+            showAlert("Please fill in all fields.");
             return;
         }
 
@@ -270,11 +238,11 @@ public class FilmController {
         try {
             year = Integer.parseInt(yearText);
             if (year < 1800 || year > 2100) {
-                showAlert("Введите корректный год (1800-2100).");
+                showAlert("Please enter a valid year (1800-2100).");
                 return;
             }
         } catch (NumberFormatException e) {
-            showAlert("Год должен быть числом.");
+            showAlert("The year must be a number.");
             return;
         }
 
@@ -292,28 +260,28 @@ public class FilmController {
     private void editFilm(Film film) {
         Dialog<ButtonType> dialog = new Dialog<>();
 
-        dialog.setTitle("Редактирование фильма");
+        dialog.setTitle("Edit Movie");
 
         DialogPane dialogPane = dialog.getDialogPane();
         dialogPane.getStylesheets().add(Objects.requireNonNull(getClass().getResource("/dialog-style.css")).toExternalForm());
         dialogPane.getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
 
-        Label titleLabel = new Label("🎬 Название:");
+        Label titleLabel = new Label("🎬 Title:");
         titleLabel.setStyle("-fx-font-weight: bold;");
         TextField titleField = new TextField(film.getTitle());
         titleField.setPrefWidth(300);
 
-        Label genreLabel = new Label("🎭 Жанр:");
+        Label genreLabel = new Label("🎭 Genre:");
         genreLabel.setStyle("-fx-font-weight: bold;");
         TextField genreField = new TextField(film.getGenre());
         genreField.setPrefWidth(300);
 
-        Label yearLabel = new Label("📅 Год:");
+        Label yearLabel = new Label("📅 Year:");
         yearLabel.setStyle("-fx-font-weight: bold;");
         TextField yearField = new TextField(String.valueOf(film.getYear()));
         yearField.setPrefWidth(150);
 
-        CheckBox watchedBox = new CheckBox(" Просмотрено");
+        CheckBox watchedBox = new CheckBox(" Watched");
         watchedBox.setSelected(film.isWatched());
 
         GridPane grid = new GridPane();
@@ -328,12 +296,13 @@ public class FilmController {
         grid.add(genreField, 1, 1);
         grid.add(yearLabel, 0, 2);
         grid.add(yearField, 1, 2);
-        grid.add(new Label(""), 0, 3); // пустая ячейка для выравнивания
+        grid.add(new Label(""), 0, 3); // Empty cell for alignment
         grid.add(watchedBox, 1, 3);
 
         dialogPane.setContent(grid);
 
-        // Валидация перед закрытием
+        // Validation before closing
+
         Button okButton = (Button) dialogPane.lookupButton(ButtonType.OK);
         okButton.addEventFilter(ActionEvent.ACTION, event -> {
             String newTitle = titleField.getText().trim();
@@ -341,7 +310,7 @@ public class FilmController {
             String newYearText = yearField.getText().trim();
 
             if (newTitle.isEmpty() || newGenre.isEmpty() || newYearText.isEmpty()) {
-                showAlert("Пожалуйста, заполните все поля.");
+                showAlert("Please fill in all fields.");
                 event.consume();
                 return;
             }
@@ -349,13 +318,13 @@ public class FilmController {
             int newYear;
             try {
                 newYear = Integer.parseInt(newYearText);
-                if (newYear < 1800 || newYear > 2025) {
-                    showAlert("Год должен быть в пределах 1800–2025.");
+                if (newYear < 1800 || newYear > 2100) {
+                    showAlert("The year must be between 1800 and 2100.");
                     event.consume();
                     return;
                 }
             } catch (NumberFormatException e) {
-                showAlert("Год должен быть числом.");
+                showAlert("The year must be a number.");
                 event.consume();
                 return;
             }
@@ -371,6 +340,42 @@ public class FilmController {
         });
 
         dialog.showAndWait();
+    }
+
+
+    private void deleteFilmFromDatabase(Film film) {
+        Task<Void> task = new Task<>() {
+            @Override
+            protected Void call() throws Exception {
+                String sql = "DELETE FROM films WHERE id = ? AND user_id = ?";
+
+                try (Connection conn = DatabaseManager.getConnection();
+                     PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+                    pstmt.setInt(1, film.getId());
+                    pstmt.setInt(2, loggedInUser.getId());
+
+                    pstmt.executeUpdate();
+                }
+
+                return null;
+            }
+
+            @Override
+            protected void succeeded() {
+                super.succeeded();
+                loadFilmsFromDatabase(); // Update data
+
+            }
+
+            @Override
+            protected void failed() {
+                super.failed();
+                getException().printStackTrace();
+            }
+        };
+
+        new Thread(task).start();
     }
 
 
@@ -400,7 +405,7 @@ public class FilmController {
             @Override
             protected void succeeded() {
                 super.succeeded();
-                loadFilmsFromDatabase(); // обновить список
+                loadFilmsFromDatabase(); // Refresh the list
             }
 
             @Override
@@ -414,11 +419,9 @@ public class FilmController {
     }
 
 
-
-
     private void showAlert(String message) {
         Alert alert = new Alert(Alert.AlertType.ERROR);
-        alert.setTitle("Ошибка");
+        alert.setTitle("Error");
         alert.setContentText(message);
         alert.showAndWait();
     }

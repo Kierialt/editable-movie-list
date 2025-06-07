@@ -16,7 +16,9 @@ public class Film {
     }
     public Film() {}
 
-    // Геттеры и сеттеры
+
+    // Getters and setters
+
     public int getId() {return id;}
 
     public String getTitle() { return title; }

@@ -14,21 +14,21 @@
 
 
     <HBox spacing="5">
-        <TextField fx:id="titleField" promptText="Название"/>
-        <TextField fx:id="genreField" promptText="Жанр"/>
-        <TextField fx:id="yearField" promptText="Год"/>
-        <Button text="Добавить" onAction="#handleAddFilm"/>
+        <TextField fx:id="titleField" promptText="Title"/>
+        <TextField fx:id="genreField" promptText="Genre"/>
+        <TextField fx:id="yearField" promptText="Year"/>
+        <Button text="Add" onAction="#handleAddFilm"/>
         <Button text="Logout" onAction="#handleLogout" style="-fx-background-color: #e74c3c; -fx-text-fill: white;" />
 
     </HBox>
 
-    <TableView fx:id="filmTable" prefHeight="300" prefWidth="755">
+    <TableView fx:id="filmTable" prefHeight="300" prefWidth="692">
         <columns>
-            <TableColumn fx:id="titleColumn" text="Название" prefWidth="200"/>
-            <TableColumn fx:id="genreColumn" text="Жанр" prefWidth="150"/>
-            <TableColumn fx:id="yearColumn" text="Год" prefWidth="100"/>
-            <TableColumn fx:id="watchedColumn" text="Просмотрено" prefWidth="120"/>
-            <TableColumn fx:id="actionColumn" text="Действия" prefWidth="183"/>
+            <TableColumn fx:id="titleColumn" text="Title" prefWidth="200"/>
+            <TableColumn fx:id="genreColumn" text="Genre" prefWidth="150"/>
+            <TableColumn fx:id="yearColumn" text="Year" prefWidth="100"/>
+            <TableColumn fx:id="watchedColumn" text="Watched" prefWidth="120"/>
+            <TableColumn fx:id="actionColumn" text="Actions" prefWidth="120"/>
         </columns>
     </TableView>
 

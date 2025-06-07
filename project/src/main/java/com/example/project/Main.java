@@ -8,7 +8,7 @@ import javafx.stage.Stage;
 public class Main extends Application {
     @Override
     public void start(Stage primaryStage) throws Exception {
-        // Загружаем login.fxml вместо main.fxml
+        // Load login.fxml immediately for login/registration instead of main.fxml
         FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/example/project/login.fxml"));
         Scene scene = new Scene(loader.load());
         primaryStage.setTitle("Вход в систему");
