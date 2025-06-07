@@ -22,10 +22,11 @@ public class LoginController {
 
     @FXML
     private void handleLogin() {
-        String username = usernameField.getText().trim();
-        String password = passwordField.getText().trim();
+        User newUser = new User();
+        newUser.setUsername(usernameField.getText().trim());
+        newUser.setPassword(passwordField.getText().trim());
 
-        if (username.isEmpty() || password.isEmpty()) {
+        if (newUser.getUsername().isEmpty() || newUser.getPassword().isEmpty()) {
             messageLabel.setText("Пожалуйста, заполните все поля.");
             return;
         }
@@ -35,8 +36,8 @@ public class LoginController {
         try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
-            pstmt.setString(1, username);
-            pstmt.setString(2, password);
+            pstmt.setString(1, newUser.getUsername());
+            pstmt.setString(2, newUser.getPassword());
             ResultSet rs = pstmt.executeQuery();
 
             if (rs.next()) {
@@ -62,10 +63,12 @@ public class LoginController {
 
     @FXML
     private void handleRegister() {
-        String username = usernameField.getText().trim();
-        String password = passwordField.getText().trim();
+        User newUser = new User();
+        newUser.setUsername(usernameField.getText().trim());
+        newUser.setPassword(passwordField.getText().trim());
 
-        if (username.isEmpty() || password.isEmpty()) {
+
+        if (newUser.getUsername().isEmpty() || newUser.getPassword().isEmpty()) {
             messageLabel.setText("Пожалуйста, заполните все поля.");
             return;
         }
@@ -75,8 +78,8 @@ public class LoginController {
         try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
-            pstmt.setString(1, username);
-            pstmt.setString(2, password);
+            pstmt.setString(1, newUser.getUsername());
+            pstmt.setString(2, newUser.getPassword());
             pstmt.executeUpdate();
 
             messageLabel.setText("Регистрация успешна. Можно войти.");
