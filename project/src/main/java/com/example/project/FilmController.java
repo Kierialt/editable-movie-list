@@ -18,7 +18,7 @@ import javafx.util.Callback;
 
 import java.io.IOException;
 import java.sql.*;
-
+import java.util.Objects;
 
 
 public class FilmController {
@@ -78,13 +78,9 @@ public class FilmController {
             }
         };
 
-        task.setOnSucceeded(event -> {
-            filmList.setAll(task.getValue());
-        });
+        task.setOnSucceeded(event -> filmList.setAll(task.getValue()));
 
-        task.setOnFailed(event -> {
-            task.getException().printStackTrace();
-        });
+        task.setOnFailed(event -> task.getException().printStackTrace());
 
         new Thread(task).start();
     }
@@ -266,7 +262,7 @@ public class FilmController {
         String yearText = yearField.getText().trim();
 
         if (title.isEmpty() || genre.isEmpty() || yearText.isEmpty()) {
-            showAlert(Alert.AlertType.ERROR, "Ошибка", "Пожалуйста, заполните все поля.");
+            showAlert("Пожалуйста, заполните все поля.");
             return;
         }
 
@@ -274,11 +270,11 @@ public class FilmController {
         try {
             year = Integer.parseInt(yearText);
             if (year < 1800 || year > 2100) {
-                showAlert(Alert.AlertType.ERROR, "Ошибка", "Введите корректный год (1800-2100).");
+                showAlert("Введите корректный год (1800-2100).");
                 return;
             }
         } catch (NumberFormatException e) {
-            showAlert(Alert.AlertType.ERROR, "Ошибка", "Год должен быть числом.");
+            showAlert("Год должен быть числом.");
             return;
         }
 
@@ -299,7 +295,7 @@ public class FilmController {
         dialog.setTitle("Редактирование фильма");
 
         DialogPane dialogPane = dialog.getDialogPane();
-        dialogPane.getStylesheets().add(getClass().getResource("/dialog-style.css").toExternalForm());
+        dialogPane.getStylesheets().add(Objects.requireNonNull(getClass().getResource("/dialog-style.css")).toExternalForm());
         dialogPane.getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
 
         Label titleLabel = new Label("🎬 Название:");
@@ -345,7 +341,7 @@ public class FilmController {
             String newYearText = yearField.getText().trim();
 
             if (newTitle.isEmpty() || newGenre.isEmpty() || newYearText.isEmpty()) {
-                showAlert(Alert.AlertType.ERROR, "Ошибка", "Пожалуйста, заполните все поля.");
+                showAlert("Пожалуйста, заполните все поля.");
                 event.consume();
                 return;
             }
@@ -354,12 +350,12 @@ public class FilmController {
             try {
                 newYear = Integer.parseInt(newYearText);
                 if (newYear < 1800 || newYear > 2025) {
-                    showAlert(Alert.AlertType.ERROR, "Ошибка", "Год должен быть в пределах 1800–2025.");
+                    showAlert("Год должен быть в пределах 1800–2025.");
                     event.consume();
                     return;
                 }
             } catch (NumberFormatException e) {
-                showAlert(Alert.AlertType.ERROR, "Ошибка", "Год должен быть числом.");
+                showAlert("Год должен быть числом.");
                 event.consume();
                 return;
             }
@@ -420,9 +416,9 @@ public class FilmController {
 
 
 
-    private void showAlert(Alert.AlertType type, String title, String message) {
-        Alert alert = new Alert(type);
-        alert.setTitle(title);
+    private void showAlert(String message) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle("Ошибка");
         alert.setContentText(message);
         alert.showAndWait();
     }
