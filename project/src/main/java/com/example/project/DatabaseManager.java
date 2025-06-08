@@ -4,7 +4,7 @@ import java.sql.*;
 
 
 public class DatabaseManager {
-    private static final String DB_URL = "jdbc:sqlite:/Users/eugene/Desktop/DBForInteliJIDEA/films.db";
+    private static final String DB_URL = "jdbc:sqlite:films.db";
 
     public static void initialize() {
         try (Connection conn = DriverManager.getConnection(DB_URL)) {
