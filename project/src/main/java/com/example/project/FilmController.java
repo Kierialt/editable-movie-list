@@ -329,7 +329,7 @@ public class FilmController {
                 return;
             }
 
-            // Обновляем данные
+            // Update the data
             film.setTitle(newTitle);
             film.setGenre(newGenre);
             film.setYear(newYear);
