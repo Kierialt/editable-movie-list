@@ -6,7 +6,7 @@
 <?import javafx.geometry.Insets?>
 <VBox xmlns="http://javafx.com/javafx"
       xmlns:fx="http://javafx.com/fxml"
-      fx:controller="com.example.project.FilmController"
+      fx:controller="com.example.project.controllers.FilmController"
       spacing="10">
     <padding>
         <Insets top="10" right="10" bottom="10" left="10"/>
